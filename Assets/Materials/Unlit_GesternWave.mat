@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Unlit_GesternWave
+  m_Shader: {fileID: 4800000, guid: b1e9909b0bbda344fab58bc4142d9573, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _DuDvMap1:
+        m_Texture: {fileID: 2800000, guid: 6e0d0e96f77394849be9ffd7b02fc8ad, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DuDvMap2:
+        m_Texture: {fileID: 2800000, guid: b5384f3c95eea95458711e03e13ed20c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap1:
+        m_Texture: {fileID: 2800000, guid: f2ee090ba630a7e4fae5babe369e7a88, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NormalMap2:
+        m_Texture: {fileID: 2800000, guid: 9d49952859f239e45bb1a230ffe2e6ed, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _Amplitude1: 3
+    - _Amplitude2: 1
+    - _DistortionFactor: 0.2
+    - _Glossiness: 0.5
+    - _Metallic: 0
+    - _Speed1: 10
+    - _Speed2: 10
+    - _Steepnes1: 0.5
+    - _Steepnes2: 0.5
+    - _WaterFog: 0.1
+    - _WaterFogDensity: 0.36
+    - _Wavelength1: 550
+    - _Wavelength2: 350
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Direction1: {r: 1, g: 0, b: 0, a: 0}
+    - _Direction2: {r: 1, g: 1, b: 0, a: 0}
+    - _NormalMapScrollSpeed: {r: 0.5, g: 0.5, b: 0, a: 0}
+    - _WaterFogColor: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
