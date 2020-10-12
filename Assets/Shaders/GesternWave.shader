@@ -50,11 +50,11 @@
                 half3 tspace1 : TEXCOORD1; // tangent.y, bitangent.y, normal.y
                 half3 tspace2 : TEXCOORD2; // tangent.z, bitangent.z, normal.z
 
-                float2 uv : TEXCOORD3;
-                float4 uvGrab : TEXCOORD4;
+                half2 uv : TEXCOORD3;
+                half4 uvGrab : TEXCOORD4;
 
                 float3 worldPos : TEXCOORD5;
-                float4 screenPos : TEXCOORD6;
+                half4 screenPos : TEXCOORD6;
             };                        
 
             struct WaveInfo 
@@ -68,9 +68,9 @@
 
 		    struct TangentSpace 
     		{
-			    float3 binormal;
-			    float3 tangent;
-			    float3 normal;
+			    half3 binormal;
+			    half3 tangent;
+			    half3 normal;
 		    };
 
             /*
@@ -88,54 +88,54 @@
             float _DistortionFactor, _WaterFog;
                 
             float4 _Direction1, _Direction2;
-            float4 _NormalMapScrollSpeed;            
+            float4 _NormalMapScrollSpeed;
             
             sampler2D _NormalMap1, _NormalMap2;
-            sampler2D _DuDvMap1, _DuDvMap2;                        
+            sampler2D _DuDvMap1, _DuDvMap2;
             sampler2D _CameraOpaqueTexture, _CameraDepthTexture;
-            float4 _CameraDepthTexture_TexelSize;            
+            float4 _CameraDepthTexture_TexelSize;
 
-            float3 gesternWave(WaveInfo wave, inout TangentSpace tangentSpace, float3 p, float t)
+            half3 gesternWave(WaveInfo wave, inout TangentSpace tangentSpace, float3 p, float t)
             {
-                float w = sqrt( 9.81 * ( (2*UNITY_PI) / wave.wavelength ) );
+                half w = sqrt( 9.81 * ( (2*UNITY_PI) / wave.wavelength ) );
                 //float w = 2 * UNITY_PI / wave.wavelength;
-                float PHI_t = wave.speed * w * t;
-                float2 D = normalize(wave.direction.xy);
-                float Q = wave.steepnes / (w * wave.amplitude * 2);			
+                half PHI_t = wave.speed * w * t;
+                half2 D = normalize(wave.direction.xy);
+                half Q = wave.steepnes / (w * wave.amplitude * 2);			
 
-                float f1 = w * dot ( D, p.xz ) + PHI_t;		
-                float S = sin(f1);
-                float C = cos(f1);
+                half f1 = w * dot ( D, p.xz ) + PHI_t;		
+                half S = sin(f1);
+                half C = cos(f1);
 
-                float WA = w * wave.amplitude;
-                float WAS = WA * S;
-                float WAC = WA * C;						
+                half WA = w * wave.amplitude;
+                half WAS = WA * S;
+                half WAC = WA * C;						
 
-                tangentSpace.binormal += float3
+                tangentSpace.binormal += half3
                 (
                     Q * (D.x * D.x) * WAS,
                     D.x * WAC,
                     Q * (D.x * D.y) * WAS
                 );
 
-                tangentSpace.tangent += float3
+                tangentSpace.tangent += half3
                 (
                     Q * (D.x * D.y) * WAS,
                     D.y * WAC,
                     Q * (D.y * D.y) * WAS
                 );
 
-                tangentSpace.normal += float3
+                tangentSpace.normal += half3
                 (
                     D.x * WAC,
                     Q * WAS,
                     D.y * WAC
                 );			
 
-                float f3 = cos(f1);
-                float f4 =  Q * wave.amplitude * f3;
+                half f3 = cos(f1);
+                half f4 =  Q * wave.amplitude * f3;
 
-                return float3
+                return half3
                 (
                     f4 * D.x,					// X
                     wave.amplitude * sin(f1),	// Y
@@ -145,17 +145,17 @@
 
             TangentSpace calculateTangentSpace(TangentSpace tangentSpace)
             {
-                tangentSpace.binormal = float3(
+                tangentSpace.binormal = half3(
                     1 - tangentSpace.binormal.x,
                     tangentSpace.binormal.y,
                     -tangentSpace.binormal.z
                 );
-                tangentSpace.tangent = float3(
+                tangentSpace.tangent = half3(
                     -tangentSpace.tangent.x,
                     tangentSpace.tangent.y,
                     1 - tangentSpace.tangent.z
                 );
-                tangentSpace.normal = float3(
+                tangentSpace.normal = half3(
                     -tangentSpace.normal.x,
                     1 - tangentSpace.normal.y,
                     -tangentSpace.normal.z
@@ -174,7 +174,7 @@
                 WaveInfo wave1 = {_Wavelength1, _Amplitude1, _Speed1, _Direction1.xy, _Steepnes1};
                 WaveInfo wave2 = {_Wavelength2, _Amplitude2, _Speed2, _Direction2.xy, _Steepnes2};
 
-			    TangentSpace tangentSpace = { float3(0,0,0), float3(0,0,0), float3(0,0,0) };
+			    TangentSpace tangentSpace = { half3(0,0,0), half3(0,0,0), half3(0,0,0) };
 
 			    p += gesternWave(wave1, tangentSpace, p, t);
 			    p += gesternWave(wave2, tangentSpace, p, t);
@@ -197,7 +197,7 @@
                 return o;
             }
 
-            float2 AlignWithGrabTexel (float2 uv)
+            half2 AlignWithGrabTexel (half2 uv)
             {
 	            #if UNITY_UV_STARTS_AT_TOP
 		        if (_CameraDepthTexture_TexelSize.y < 0) 
@@ -207,55 +207,74 @@
 	            #endif
 
                 return (floor(uv * _CameraDepthTexture_TexelSize.zw) + 0.5) * abs(_CameraDepthTexture_TexelSize.xy);
-            } 
-            
-            fixed4 frag (v2f i) : SV_Target
-            {
-                float2 normalMapCoords1 = i.uv + (_Time.x * _NormalMapScrollSpeed.x) * _Direction1.xy;
-    			float2 normalMapCoords2 = i.uv + (_Time.x * _NormalMapScrollSpeed.y) * _Direction2.xy;                
+            }
 
-                float3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords1));			
-			    float3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords2));
-                float3 normalMapSum = normalMap1 + normalMap1;
+            half3 SkyColor(float3 worldPos, half3 tspace0, half3 tspace1, half3 tspace2, half4 normalMapCoords)
+            {
+                half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));			
+			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
+                half3 normalMapSum = normalMap1 + normalMap1;
 			   
                 half3 worldNormal;
-                worldNormal.x = dot(i.tspace0, normalMapSum);
-                worldNormal.y = dot(i.tspace1, normalMapSum);
-                worldNormal.z = dot(i.tspace2, normalMapSum);                
+                worldNormal.x = dot(tspace0, normalMapSum);
+                worldNormal.y = dot(tspace1, normalMapSum);
+                worldNormal.z = dot(tspace2, normalMapSum);                
              
-                half3 worldViewDir = normalize(UnityWorldSpaceViewDir(i.worldPos));
+                half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
                 half3 worldRefl = reflect(-worldViewDir,  worldNormal );
                 half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldRefl);
-                half3 skyColor = DecodeHDR (skyData, unity_SpecCube0_HDR);                                
+                
+                return DecodeHDR (skyData, unity_SpecCube0_HDR);
+            }
 
-                float3 duDvMap1 = UnpackNormal(tex2D(_DuDvMap1, normalMapCoords1));
-                float3 duDvMap2 = UnpackNormal(tex2D(_DuDvMap2, normalMapCoords2));
-                float3 duDVMapSum = duDvMap1 + duDvMap2; 
+            half3 Distortion(half3 tspace0, half3 tspace1, half3 tspace2, half4 normalMapCoords)
+            {
+                half3 duDvMap1 = UnpackNormal(tex2D(_DuDvMap1, normalMapCoords.xy));
+                half3 duDvMap2 = UnpackNormal(tex2D(_DuDvMap2, normalMapCoords.zw));
+                half3 duDVMapSum = duDvMap1 + duDvMap2; 
 
                 half3 worldDuDvMap;
-                worldDuDvMap.x = dot(i.tspace0, duDVMapSum);
-                worldDuDvMap.y = dot(i.tspace1, duDVMapSum);
-                worldDuDvMap.z = dot(i.tspace2, duDVMapSum);
-                half3 distortion =  worldDuDvMap * _DistortionFactor;
+                worldDuDvMap.x = dot(tspace0, duDVMapSum);
+                worldDuDvMap.y = dot(tspace1, duDVMapSum);
+                worldDuDvMap.z = dot(tspace2, duDVMapSum);
+                
+                return worldDuDvMap * _DistortionFactor;
+            }
 
+            half3 SurfaceColor(half3 distortion, half3 skyColor, half4 screenPos)
+            {
                 distortion.y *= _CameraDepthTexture_TexelSize.z * abs(_CameraDepthTexture_TexelSize.y);
-	            float2 uv = AlignWithGrabTexel((i.screenPos.xy + distortion) / i.screenPos.w);
+	            half2 uv = AlignWithGrabTexel((screenPos.xy + distortion) / screenPos.w);
 
-                float backgroundDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, uv));
-	            float surfaceDepth = UNITY_Z_0_FAR_FROM_CLIPSPACE(i.screenPos.z);
-	            float depthDifference = backgroundDepth - surfaceDepth;
+                half backgroundDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, uv));
+	            half surfaceDepth = UNITY_Z_0_FAR_FROM_CLIPSPACE(screenPos.z);
+	            half depthDifference = backgroundDepth - surfaceDepth;
 
                 distortion *= saturate(depthDifference);
-                uv = AlignWithGrabTexel((i.screenPos.xy + distortion) / i.screenPos.w);
+                uv = AlignWithGrabTexel((screenPos.xy + distortion) / screenPos.w);
 	            backgroundDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, uv));
 	            depthDifference = backgroundDepth - surfaceDepth;
 
-                float3 underwaterColor = tex2D(_CameraOpaqueTexture, uv).rgb;                
+                half3 underwaterColor = tex2D(_CameraOpaqueTexture, uv).rgb;                
                 
                 half4 depthFactor = saturate(_WaterFog * depthDifference);          
-                float3 surfaceColor = lerp(underwaterColor, skyColor, depthFactor);
+                
+                return lerp(underwaterColor, skyColor, depthFactor);
+            }
+            
+            half4 frag (v2f i) : SV_Target
+            {
+                half4 normalMapCoords;
+                normalMapCoords.xy = i.uv + (_Time.x * _NormalMapScrollSpeed.x) * _Direction1.xy;
+    			normalMapCoords.zw = i.uv + (_Time.x * _NormalMapScrollSpeed.y) * _Direction2.xy;                
+                
+                half3 skyColor = SkyColor(i.worldPos, i.tspace0, i.tspace1, i.tspace2, normalMapCoords);                
+                
+                half3 distortion = Distortion(i.tspace0, i.tspace1, i.tspace2, normalMapCoords);
+                
+                half3 surfaceColor = SurfaceColor(distortion, skyColor, i.screenPos);
 
-                fixed4 c = 0;
+                half4 c = 0;
                 c.rgb = surfaceColor;
                 return c;                 
             }
