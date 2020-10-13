@@ -2,29 +2,24 @@
 {
     Properties
     {
-        //_Color ("Color", Color) = (1,1,1,1)
-		//_MainTex ("Albedo (RGB)", 2D) = "white" {}
-		//_Glossiness ("Smoothness", Range(0,1)) = 0.5
-		//_Metallic ("Metallic", Range(0,1)) = 0.0
-
 		_Wavelength1 ("Wavelength Wave A", Float) = 10
 		_Amplitude1 ("Amplitude Wave A", Float) = 1
-		_Speed1 ("Speed Wave A", Float) = 1		
+		_Speed1 ("Speed Wave A", Float) = 1
 		_Steepnes1 ("Steepnes Wave A", Range(0,1)) = 0.5
-		_Direction1 ("Direction Wave A (2D)", Vector) = (1,0,0,0)	
+		_Direction1 ("Direction Wave A (2D)", Vector) = (1,0,0,0)
 
 		_Wavelength2 ("Wavelength Wave B", Float) = 10
 		_Amplitude2 ("Amplitude Wave B", Float) = 1
-		_Speed2 ("Speed Wave B", Float) = 1		
+		_Speed2 ("Speed Wave B", Float) = 1
 		_Steepnes2 ("Steepnes Wave B", Range(0,1)) = 0.5
-		_Direction2 ("Direction Wave B (2D)", Vector) = (1,0,0,0)	
+		_Direction2 ("Direction Wave B (2D)", Vector) = (1,0,0,0)
 
 		_NormalMapScrollSpeed ("Normal Map Scroll Speed", Vector) = (1,1,1,1)
 
 		[NoScaleOffset] _NormalMap1("Normal Map 1", 2D) = "white" {}
         [NoScaleOffset] _DuDvMap1("Normal Map 1 Distortion", 2D) = "white" {}
 		
-        [NoScaleOffset] _NormalMap2("Normal Map 2", 2D) = "white" {}		
+        [NoScaleOffset] _NormalMap2("Normal Map 2", 2D) = "white" {}
 		[NoScaleOffset] _DuDvMap2("Normal Map 2 Distortion", 2D) = "white" {}
 		
 		_DistortionFactor("Distortion Factor", Range(0, 0.5)) =  0.15
@@ -33,16 +28,16 @@
     SubShader
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent"}
- 		 
+
         Pass
-        {              		
+        {
             CGPROGRAM
             #pragma vertex vert
-            #pragma fragment frag                        
+            #pragma fragment frag
 
             #include "UnityCG.cginc"            
 
-            struct v2f 
+            struct v2f
             {
                 float4 pos : SV_POSITION;
 
@@ -55,9 +50,9 @@
 
                 float3 worldPos : TEXCOORD5;
                 half4 screenPos : TEXCOORD6;
-            };                        
+            };
 
-            struct WaveInfo 
+            struct WaveInfo
             {
                 float wavelength; 	// (W)
                 float amplitude; 	// (A)
@@ -66,34 +61,26 @@
                 float steepnes; 	// (Q)
             };
 
-		    struct TangentSpace 
+		    struct TangentSpace
     		{
 			    half3 binormal;
 			    half3 tangent;
 			    half3 normal;
 		    };
 
-            /*
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
-
-            half _Glossiness;
-            half _Metallic;
-            fixed4 _Color;
-            */
+            half _Wavelength1, _Amplitude1, _Speed1, _Steepnes1;
+            half _Wavelength2, _Amplitude2, _Speed2, _Steepnes2;
             
-            float _Wavelength1, _Amplitude1, _Speed1, _Steepnes1;
-            float _Wavelength2, _Amplitude2, _Speed2, _Steepnes2;
-            
-            float _DistortionFactor, _WaterFog;
+            half _DistortionFactor, _WaterFog;
                 
-            float4 _Direction1, _Direction2;
-            float4 _NormalMapScrollSpeed;
+            half4 _Direction1, _Direction2;
+            half4 _NormalMapScrollSpeed;
             
             sampler2D _NormalMap1, _NormalMap2;
             sampler2D _DuDvMap1, _DuDvMap2;
             sampler2D _CameraOpaqueTexture, _CameraDepthTexture;
-            float4 _CameraDepthTexture_TexelSize;
+            
+            half4 _CameraDepthTexture_TexelSize;
 
             half3 gesternWave(WaveInfo wave, inout TangentSpace tangentSpace, float3 p, float t)
             {
@@ -209,16 +196,16 @@
                 return (floor(uv * _CameraDepthTexture_TexelSize.zw) + 0.5) * abs(_CameraDepthTexture_TexelSize.xy);
             }
 
-            half3 SkyColor(float3 worldPos, half3 tspace0, half3 tspace1, half3 tspace2, half4 normalMapCoords)
+            half3 SkyColor(float3 worldPos, TangentSpace tangentSpace, half4 normalMapCoords)
             {
                 half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));			
 			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
                 half3 normalMapSum = normalMap1 + normalMap1;
 			   
                 half3 worldNormal;
-                worldNormal.x = dot(tspace0, normalMapSum);
-                worldNormal.y = dot(tspace1, normalMapSum);
-                worldNormal.z = dot(tspace2, normalMapSum);                
+                worldNormal.x = dot(tangentSpace.binormal, normalMapSum);
+                worldNormal.y = dot(tangentSpace.tangent, normalMapSum);
+                worldNormal.z = dot(tangentSpace.normal, normalMapSum);                
              
                 half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
                 half3 worldRefl = reflect(-worldViewDir,  worldNormal );
@@ -227,16 +214,16 @@
                 return DecodeHDR (skyData, unity_SpecCube0_HDR);
             }
 
-            half3 Distortion(half3 tspace0, half3 tspace1, half3 tspace2, half4 normalMapCoords)
+            half3 Distortion(TangentSpace tangentSpace, half4 normalMapCoords)
             {
                 half3 duDvMap1 = UnpackNormal(tex2D(_DuDvMap1, normalMapCoords.xy));
                 half3 duDvMap2 = UnpackNormal(tex2D(_DuDvMap2, normalMapCoords.zw));
                 half3 duDVMapSum = duDvMap1 + duDvMap2; 
 
                 half3 worldDuDvMap;
-                worldDuDvMap.x = dot(tspace0, duDVMapSum);
-                worldDuDvMap.y = dot(tspace1, duDVMapSum);
-                worldDuDvMap.z = dot(tspace2, duDVMapSum);
+                worldDuDvMap.x = dot(tangentSpace.binormal, duDVMapSum);
+                worldDuDvMap.y = dot(tangentSpace.tangent, duDVMapSum);
+                worldDuDvMap.z = dot(tangentSpace.normal, duDVMapSum);
                 
                 return worldDuDvMap * _DistortionFactor;
             }
@@ -266,11 +253,13 @@
             {
                 half4 normalMapCoords;
                 normalMapCoords.xy = i.uv + (_Time.x * _NormalMapScrollSpeed.x) * _Direction1.xy;
-    			normalMapCoords.zw = i.uv + (_Time.x * _NormalMapScrollSpeed.y) * _Direction2.xy;                
+    			normalMapCoords.zw = i.uv + (_Time.x * _NormalMapScrollSpeed.y) * _Direction2.xy;
                 
-                half3 skyColor = SkyColor(i.worldPos, i.tspace0, i.tspace1, i.tspace2, normalMapCoords);                
+                TangentSpace tangentSpace = { i.tspace0, i.tspace1, i.tspace2 };
+
+                half3 skyColor = SkyColor(i.worldPos, tangentSpace, normalMapCoords);
                 
-                half3 distortion = Distortion(i.tspace0, i.tspace1, i.tspace2, normalMapCoords);
+                half3 distortion = Distortion(tangentSpace, normalMapCoords);
                 
                 half3 surfaceColor = SurfaceColor(distortion, skyColor, i.screenPos);
 
