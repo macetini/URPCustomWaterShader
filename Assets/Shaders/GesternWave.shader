@@ -177,7 +177,7 @@
 			    TangentSpace tangentSpace = { half3(0,0,0), half3(0,0,0), half3(0,0,0) };
 
 			    p += gesternWave(wave1, tangentSpace, p, t);
-			    p += gesternWave(wave2, tangentSpace, p, t);
+			    //p += gesternWave(wave2, tangentSpace, p, t);
 						
 			    vertex.xyz = p;
 
@@ -213,7 +213,7 @@
             {
                 half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));			
 			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
-                half3 normalMapSum = normalMap1 + normalMap1;
+                half3 normalMapSum = half3(0, 1, 0); //normalMap1 + normalMap1;
 			   
                 half3 worldNormal;
                 worldNormal.x = dot(tspace0, normalMapSum);
@@ -222,9 +222,9 @@
              
                 half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
                 half3 worldRefl = reflect(-worldViewDir,  worldNormal );
-                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldRefl);
-                
-                return DecodeHDR (skyData, unity_SpecCube0_HDR);
+                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldRefl);               
+                                
+                return DecodeHDR(skyData, unity_SpecCube0_HDR);
             }
 
             half3 Distortion(half3 tspace0, half3 tspace1, half3 tspace2, half4 normalMapCoords)
@@ -255,7 +255,7 @@
 	            backgroundDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, uv));
 	            depthDifference = backgroundDepth - surfaceDepth;
 
-                half3 underwaterColor = tex2D(_CameraOpaqueTexture, uv).rgb;                
+                half3 underwaterColor = tex2D(_CameraOpaqueTexture, uv).rgb;
                 
                 half4 depthFactor = saturate(_WaterFog * depthDifference);          
                 
@@ -275,7 +275,7 @@
                 half3 surfaceColor = SurfaceColor(distortion, skyColor, i.screenPos);
 
                 half4 c = 0;
-                c.rgb = surfaceColor;
+                c.rgb = skyColor;//surfaceColor;
                 return c;                 
             }
             ENDCG
