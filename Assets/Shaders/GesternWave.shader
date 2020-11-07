@@ -27,6 +27,8 @@
 		
 		_DistortionFactor("Distortion Factor", Range(0, 0.5)) =  0.15
         _WaterFog("Water Fog", Range(0, 1)) =  0.5
+
+        _SunThreshold("Sun Glitter Threshold", Range(0, 50)) =  1
     }
     SubShader
     {
@@ -80,7 +82,7 @@
             half _Wavelength1, _Amplitude1, _Speed1, _Steepnes1;
             half _Wavelength2, _Amplitude2, _Speed2, _Steepnes2;
             
-            half _DistortionFactor, _WaterFog;
+            half _DistortionFactor, _WaterFog, _SunThreshold;
                 
             half4 _Direction1, _Direction2;
             half4 _NormalMapScrollSpeed;
@@ -204,9 +206,8 @@
 
                 return (floor(uv * _CameraDepthTexture_TexelSize.zw) + 0.5) * abs(_CameraDepthTexture_TexelSize.xy);
             }
-            
-            //Still looks ugly.. maybe use texture instead of color?
-            half3 SkyColor(float3 worldPos, half3x3 tangentSpaceMatrix, half4 normalMapCoords, half2 uv)
+                        
+            half3 SkyReflection(float3 worldPos, half3x3 tangentSpaceMatrix, half4 normalMapCoords, half2 uv)
             {
                 half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));
 			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
@@ -220,8 +221,13 @@
                 half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
                 half reflectionFactor = dot(worldViewDir, worldNormal);
 
-                //half3 col = tex2D(_MainTex, uv).rgb;
-                return lerp( _Color.rgb, skyColor, reflectionFactor);
+                half3 col = lerp( _Color.rgb, skyColor, reflectionFactor);
+
+                float4 lightColor = max(0, dot(_WorldSpaceLightPos0.xyz, reflect(-worldViewDir.xzy, worldNormal.xzy))) * _LightColor0;
+                lightColor.a = (lightColor.a > 0.98 + _SunThreshold * 0.02);
+                col.rgb += lightColor * lightColor.a;
+                
+                return col;
             }
 
             half3 Distortion(half3x3 tangentSpaceMatrix, half4 normalMapCoords)
@@ -268,11 +274,11 @@
                     i.binormal.z, i.normal.z, i.tangent.z
                 };
 
-                half3 skyColor = SkyColor(i.worldPos, tangentSpaceMatrix, normalMapCoords, i.uv);
+                half3 skyReflection = SkyReflection(i.worldPos, tangentSpaceMatrix, normalMapCoords, i.uv);
                 
                 half3 distortion = Distortion(tangentSpaceMatrix, normalMapCoords);
                 
-                half3 surfaceColor = SurfaceColor(distortion, skyColor, i.screenPos);
+                half3 surfaceColor = SurfaceColor(distortion, skyReflection, i.screenPos);
 
                 half4 c = 0;
                 c.rgb = surfaceColor;

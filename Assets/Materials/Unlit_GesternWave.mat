@@ -49,6 +49,7 @@ Material:
     - _Speed2: 10
     - _Steepnes1: 0.5
     - _Steepnes2: 0.5
+    - _SunThreshold: 25
     - _WaterFog: 0.1
     - _WaterFogDensity: 0.36
     - _Wavelength1: 550
