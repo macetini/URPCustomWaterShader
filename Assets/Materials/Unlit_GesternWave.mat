@@ -28,7 +28,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: f4c6f7f6d5b56f248b79da01bcd3b93b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalMap1:
@@ -49,12 +49,12 @@ Material:
     - _Speed2: 10
     - _Steepnes1: 0.5
     - _Steepnes2: 0.5
-    - _WaterFog: 0.154
+    - _WaterFog: 0.1
     - _WaterFogDensity: 0.36
     - _Wavelength1: 550
     - _Wavelength2: 350
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0, g: 0.5085707, b: 1, a: 1}
     - _Direction1: {r: 1, g: 0, b: 0, a: 0}
     - _Direction2: {r: 1, g: 1, b: 0, a: 0}
     - _NormalMapScrollSpeed: {r: 0.5, g: 0.5, b: 0, a: 0}

@@ -2,6 +2,9 @@
 {
     Properties
     {
+        //_MainTex ("Texture", 2D) = "white" {}
+        _Color ("Color", Color) = (1,1,1,1)
+
 		_Wavelength1 ("Wavelength Wave A", Float) = 10
 		_Amplitude1 ("Amplitude Wave A", Float) = 1
 		_Speed1 ("Speed Wave A", Float) = 1
@@ -35,15 +38,16 @@
             #pragma vertex vert
             #pragma fragment frag
 
-            #include "UnityCG.cginc"            
+            #include "UnityCG.cginc"      
+            #include "UnityStandardBRDF.cginc"      
 
             struct v2f
             {
                 float4 pos : SV_POSITION;
 
-                half3 tspace0 : TEXCOORD0; // tangent.x, bitangent.x, normal.x
-                half3 tspace1 : TEXCOORD1; // tangent.y, bitangent.y, normal.y
-                half3 tspace2 : TEXCOORD2; // tangent.z, bitangent.z, normal.z
+                half3 normal : TEXCOORD0;
+                half3 binormal : TEXCOORD1;
+                half3 tangent : TEXCOORD2;
 
                 half2 uv : TEXCOORD3;
                 half4 uvGrab : TEXCOORD4;
@@ -63,10 +67,15 @@
 
 		    struct TangentSpace
     		{
+                half3 normal;
 			    half3 binormal;
-			    half3 tangent;
-			    half3 normal;
+			    half3 tangent;			    
 		    };
+
+            //sampler2D _MainTex;
+            //float4 _MainTex_ST;
+
+            half4 _Color;
 
             half _Wavelength1, _Amplitude1, _Speed1, _Steepnes1;
             half _Wavelength2, _Amplitude2, _Speed2, _Steepnes2;
@@ -164,19 +173,19 @@
 			    TangentSpace tangentSpace = { half3(0,0,0), half3(0,0,0), half3(0,0,0) };
 
 			    p += gesternWave(wave1, tangentSpace, p, t);
-			    //p += gesternWave(wave2, tangentSpace, p, t);
+			    p += gesternWave(wave2, tangentSpace, p, t);
 						
 			    vertex.xyz = p;
 
                 tangentSpace = calculateTangentSpace(tangentSpace);	
 
+                o.normal = tangentSpace.normal;
+                o.binormal = tangentSpace.binormal;
+                o.tangent = tangentSpace.tangent;                
+
                 o.screenPos = ComputeScreenPos(UnityObjectToClipPos(vertex));
                 o.pos = UnityObjectToClipPos(vertex); 
                 o.worldPos = mul(unity_ObjectToWorld, vertex).xyz;
-              
-                o.tspace0 = half3(tangentSpace.tangent.x, tangentSpace.binormal.x, tangentSpace.normal.x);
-                o.tspace1 = half3(tangentSpace.tangent.y, tangentSpace.binormal.y, tangentSpace.normal.y);
-                o.tspace2 = half3(tangentSpace.tangent.z, tangentSpace.binormal.z, tangentSpace.normal.z);
 
                 o.uvGrab = ComputeGrabScreenPos(UnityObjectToClipPos(vertex));
                 o.uv = uv;
@@ -195,39 +204,37 @@
 
                 return (floor(uv * _CameraDepthTexture_TexelSize.zw) + 0.5) * abs(_CameraDepthTexture_TexelSize.xy);
             }
-
-            half3 SkyColor(float3 worldPos, TangentSpace tangentSpace, half4 normalMapCoords)
+            
+            //Still looks ugly.. maybe use texture instead of color?
+            half3 SkyColor(float3 worldPos, half3x3 tangentSpaceMatrix, half4 normalMapCoords, half2 uv)
             {
-                half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));			
+                half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));
 			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
-                half3 normalMapSum = half3(0, 1, 0); //normalMap1 + normalMap1;
+                half3 normal = normalMap1 + normalMap1;
 			   
-                half3 worldNormal;
-                worldNormal.x = dot(tangentSpace.binormal, normalMapSum);
-                worldNormal.y = dot(tangentSpace.tangent, normalMapSum);
-                worldNormal.z = dot(tangentSpace.normal, normalMapSum);                
-             
+                half3 worldNormal = normalize(mul(tangentSpaceMatrix, normal));
+                             
+                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldNormal);
+                half3 skyColor = DecodeHDR(skyData, unity_SpecCube0_HDR);
+
                 half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
-                half3 worldRefl = reflect(-worldViewDir,  worldNormal );
-                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldRefl);               
-                                
-                return DecodeHDR(skyData, unity_SpecCube0_HDR);
+                half reflectionFactor = dot(worldViewDir, worldNormal);
+
+                //half3 col = tex2D(_MainTex, uv).rgb;
+                return lerp( _Color.rgb, skyColor, reflectionFactor);
             }
 
-            half3 Distortion(TangentSpace tangentSpace, half4 normalMapCoords)
+            half3 Distortion(half3x3 tangentSpaceMatrix, half4 normalMapCoords)
             {
                 half3 duDvMap1 = UnpackNormal(tex2D(_DuDvMap1, normalMapCoords.xy));
                 half3 duDvMap2 = UnpackNormal(tex2D(_DuDvMap2, normalMapCoords.zw));
                 half3 duDVMapSum = duDvMap1 + duDvMap2; 
 
-                half3 worldDuDvMap;
-                worldDuDvMap.x = dot(tangentSpace.binormal, duDVMapSum);
-                worldDuDvMap.y = dot(tangentSpace.tangent, duDVMapSum);
-                worldDuDvMap.z = dot(tangentSpace.normal, duDVMapSum);
+                half3 worldDuDvMap = normalize(mul(tangentSpaceMatrix, duDVMapSum));                
                 
                 return worldDuDvMap * _DistortionFactor;
             }
-
+                    
             half3 SurfaceColor(half3 distortion, half3 skyColor, half4 screenPos)
             {
                 distortion.y *= _CameraDepthTexture_TexelSize.z * abs(_CameraDepthTexture_TexelSize.y);
@@ -254,17 +261,21 @@
                 half4 normalMapCoords;
                 normalMapCoords.xy = i.uv + (_Time.x * _NormalMapScrollSpeed.x) * _Direction1.xy;
     			normalMapCoords.zw = i.uv + (_Time.x * _NormalMapScrollSpeed.y) * _Direction2.xy;
-                
-                TangentSpace tangentSpace = { i.tspace0, i.tspace1, i.tspace2 };
+            
+                half3x3 tangentSpaceMatrix = { 
+                    i.binormal.x, i.normal.x, i.tangent.x,
+                    i.binormal.y, i.normal.y, i.tangent.y,
+                    i.binormal.z, i.normal.z, i.tangent.z
+                };
 
-                half3 skyColor = SkyColor(i.worldPos, tangentSpace, normalMapCoords);
+                half3 skyColor = SkyColor(i.worldPos, tangentSpaceMatrix, normalMapCoords, i.uv);
                 
-                half3 distortion = Distortion(tangentSpace, normalMapCoords);
+                half3 distortion = Distortion(tangentSpaceMatrix, normalMapCoords);
                 
                 half3 surfaceColor = SurfaceColor(distortion, skyColor, i.screenPos);
 
                 half4 c = 0;
-                c.rgb = skyColor;//surfaceColor;
+                c.rgb = surfaceColor;
                 return c;                 
             }
             ENDCG
