@@ -3,7 +3,7 @@
     Properties
     {
         //_MainTex ("Texture", 2D) = "white" {}
-        _Color ("Color", Color) = (1,1,1,1)
+        [HDR] _WaveColor ("Wave Color", Color) = (1,1,1,1)
 
 		_Wavelength1 ("Wavelength Wave A", Float) = 10
 		_Amplitude1 ("Amplitude Wave A", Float) = 1
@@ -17,18 +17,21 @@
 		_Steepnes2 ("Steepnes Wave B", Range(0,1)) = 0.5
 		_Direction2 ("Direction Wave B (2D)", Vector) = (1,0,0,0)
 
-		_NormalMapScrollSpeed ("Normal Map Scroll Speed", Vector) = (1,1,1,1)
-
-		[NoScaleOffset] _NormalMap1("Normal Map 1", 2D) = "white" {}
-        [NoScaleOffset] _DuDvMap1("Normal Map 1 Distortion", 2D) = "white" {}
-		
-        [NoScaleOffset] _NormalMap2("Normal Map 2", 2D) = "white" {}
-		[NoScaleOffset] _DuDvMap2("Normal Map 2 Distortion", 2D) = "white" {}
+		_NormalMapScrollSpeed ("Normal Map Scroll Speed", Vector) = (1,1,1,1)		
 		
 		_DistortionFactor("Distortion Factor", Range(0, 0.5)) =  0.15
         _WaterFog("Water Fog", Range(0, 1)) =  0.5
 
-        _SunThreshold("Sun Glitter Threshold", Range(0, 50)) =  1
+        _SunThreshold("Sun Glitter Threshold", Range(0, 100)) =  1        
+        
+        _SSPower("Subsurface Scatering Power", Float) =  2
+        _SSScale("Subsurface Scatering Scale", Range(0, 1)) =  0.5
+
+        [NoScaleOffset] _NormalMap1("Normal Map 1", 2D) = "white" {}
+        [NoScaleOffset] _DuDvMap1("Normal Map 1 Distortion", 2D) = "white" {}
+		
+        [NoScaleOffset] _NormalMap2("Normal Map 2", 2D) = "white" {}
+		[NoScaleOffset] _DuDvMap2("Normal Map 2 Distortion", 2D) = "white" {}
     }
     SubShader
     {
@@ -41,7 +44,7 @@
             #pragma fragment frag
 
             #include "UnityCG.cginc"      
-            #include "UnityStandardBRDF.cginc"      
+            #include "UnityStandardBRDF.cginc"
 
             struct v2f
             {
@@ -77,12 +80,14 @@
             //sampler2D _MainTex;
             //float4 _MainTex_ST;
 
-            half4 _Color;
+            half4 _WaveColor;
 
             half _Wavelength1, _Amplitude1, _Speed1, _Steepnes1;
             half _Wavelength2, _Amplitude2, _Speed2, _Steepnes2;
             
             half _DistortionFactor, _WaterFog, _SunThreshold;
+
+            float _Distortion, _SSPower, _SSScale;            
                 
             half4 _Direction1, _Direction2;
             half4 _NormalMapScrollSpeed;
@@ -93,7 +98,7 @@
             
             half4 _CameraDepthTexture_TexelSize;
 
-            half3 gesternWave(WaveInfo wave, inout TangentSpace tangentSpace, float3 p, float t)
+            half3 GesternWave(WaveInfo wave, inout TangentSpace tangentSpace, float3 p, float t)
             {
                 half w = sqrt( 9.81 * ( (2*UNITY_PI) / wave.wavelength ) );
                 //float w = 2 * UNITY_PI / wave.wavelength;
@@ -141,7 +146,7 @@
                 );
             }
 
-            TangentSpace calculateTangentSpace(TangentSpace tangentSpace)
+            TangentSpace CalculateTangentSpace(TangentSpace tangentSpace)
             {
                 tangentSpace.binormal = half3(
                     1 - tangentSpace.binormal.x,
@@ -174,12 +179,12 @@
 
 			    TangentSpace tangentSpace = { half3(0,0,0), half3(0,0,0), half3(0,0,0) };
 
-			    p += gesternWave(wave1, tangentSpace, p, t);
-			    p += gesternWave(wave2, tangentSpace, p, t);
-						
+			    p += GesternWave(wave1, tangentSpace, p, t);
+			    p += GesternWave(wave2, tangentSpace, p, t);
+
 			    vertex.xyz = p;
 
-                tangentSpace = calculateTangentSpace(tangentSpace);	
+                tangentSpace = CalculateTangentSpace(tangentSpace);	
 
                 o.normal = tangentSpace.normal;
                 o.binormal = tangentSpace.binormal;
@@ -207,27 +212,34 @@
                 return (floor(uv * _CameraDepthTexture_TexelSize.zw) + 0.5) * abs(_CameraDepthTexture_TexelSize.xy);
             }
                         
-            half3 SkyReflection(float3 worldPos, half3x3 tangentSpaceMatrix, half4 normalMapCoords, half2 uv)
+            half3 SkyReflection(float3 worldPos, half3x3 tangentSpaceMatrix, half4 normalMapCoords)//, half2 uv)
             {
                 half3 normalMap1 = UnpackNormal(tex2D(_NormalMap1, normalMapCoords.xy));
 			    half3 normalMap2 = UnpackNormal(tex2D(_NormalMap2, normalMapCoords.zw));
                 half3 normal = normalMap1 + normalMap1;
 			   
                 half3 worldNormal = normalize(mul(tangentSpaceMatrix, normal));
-                             
-                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldNormal);
-                half3 skyColor = DecodeHDR(skyData, unity_SpecCube0_HDR);
 
                 half3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
+                half3 worldRefl = reflect(-worldViewDir,  worldNormal );
+                //worldRefl.y = clamp(worldRefl.y, 0.75, 1);
+                half4 skyData = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, worldRefl);
+                half3 skyColor = DecodeHDR(skyData, unity_SpecCube0_HDR);                
+
                 half reflectionFactor = dot(worldViewDir, worldNormal);
-
-                half3 col = lerp( _Color.rgb, skyColor, reflectionFactor);
-
+                half3 relectedColor = lerp( _WaveColor.rgb, skyColor, reflectionFactor);
+                
+                //SUN GLITTER
                 float4 lightColor = max(0, dot(_WorldSpaceLightPos0.xyz, reflect(-worldViewDir.xzy, worldNormal.xzy))) * _LightColor0;
                 lightColor.a = (lightColor.a > 0.98 + _SunThreshold * 0.02);
-                col.rgb += lightColor * lightColor.a;
+                half3 glitter = lightColor * lightColor.a;
+
+                //SUBSURFACE SCATERING
+	            half3 subsurfaceHeight = normalize(_WorldSpaceLightPos0.xyz + half3(0, worldPos.y, 0));
+	            half ViewDotH = pow( saturate( dot(worldViewDir, -subsurfaceHeight) ), _SSPower ) * _SSScale;
+                half3 subsurfaceScatter = _LightColor0 * ViewDotH;
                 
-                return col;
+                return saturate(relectedColor + glitter + subsurfaceScatter);
             }
 
             half3 Distortion(half3x3 tangentSpaceMatrix, half4 normalMapCoords)
@@ -274,14 +286,14 @@
                     i.binormal.z, i.normal.z, i.tangent.z
                 };
 
-                half3 skyReflection = SkyReflection(i.worldPos, tangentSpaceMatrix, normalMapCoords, i.uv);
+                half3 skyReflection = SkyReflection(i.worldPos, tangentSpaceMatrix, normalMapCoords);//, i.uv);
                 
                 half3 distortion = Distortion(tangentSpaceMatrix, normalMapCoords);
                 
                 half3 surfaceColor = SurfaceColor(distortion, skyReflection, i.screenPos);
 
                 half4 c = 0;
-                c.rgb = surfaceColor;
+                c.rgb = surfaceColor;                
                 return c;                 
             }
             ENDCG

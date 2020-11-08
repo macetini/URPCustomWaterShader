@@ -42,22 +42,30 @@ Material:
     m_Floats:
     - _Amplitude1: 1
     - _Amplitude2: 1
-    - _DistortionFactor: 0.15
+    - _Distortion: 1
+    - _DistortionFactor: 0.3
     - _Glossiness: 0.5
     - _Metallic: 0
+    - _Power: 10
+    - _SSPower: 10
+    - _SSScale: 0.1
+    - _Scale: 0.1
     - _Speed1: 10
-    - _Speed2: 10
-    - _Steepnes1: 0.5
+    - _Speed2: 1
+    - _Steepnes1: 1
     - _Steepnes2: 0.5
-    - _SunThreshold: 25
-    - _WaterFog: 0.1
+    - _SubsurfaceScatteringIntensity: 0
+    - _SunThreshold: 49
+    - _WaterFog: 0.067
     - _WaterFogDensity: 0.36
     - _Wavelength1: 550
-    - _Wavelength2: 350
+    - _Wavelength2: 1000
     m_Colors:
     - _Color: {r: 0, g: 0.5085707, b: 1, a: 1}
-    - _Direction1: {r: 1, g: 0, b: 0, a: 0}
-    - _Direction2: {r: 1, g: 1, b: 0, a: 0}
+    - _Direction1: {r: -0.25, g: 0.75, b: 0, a: 0}
+    - _Direction2: {r: 0.25, g: 0.55, b: 0, a: 0}
     - _NormalMapScrollSpeed: {r: 0.5, g: 0.5, b: 0, a: 0}
+    - _SSSColor: {r: 1, g: 0.18458854, b: 0, a: 1}
     - _WaterFogColor: {r: 1, g: 1, b: 1, a: 1}
+    - _WaveColor: {r: 0, g: 0.16586089, b: 1, a: 1}
   m_BuildTextureStacks: []
