@@ -11,11 +11,11 @@ This shader simulates a realistic water surface using the Gerstner Wave equation
 
 * Simulates a realistic water surface using the Gerstner Wave equation
 * Adjustable wave parameters (amplitude, frequency, direction) for customizable wave behavior
-* Compatible with [insert rendering engine/ platform]
+
 
 ## Usage
 
-To use this shader, simply apply it to a mesh that represents the water surface. You can adjust the wave parameters to control the appearance and behavior of the waves.
+To use this shader, apply it to a mesh that represents the water surface. You can adjust the wave parameters to control the appearance and behavior of the waves.
 
 ## Parameters
 
